@@ -4,9 +4,21 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'لینک ویدیو یوتیوب'
+        description: '🎬 لینک ویدیو'
         required: true
-        default: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        default: ''
+      quality:
+        description: '📊 کیفیت'
+        required: false
+        type: choice
+        default: '1080p'
+        options:
+          - '2160p (4K)'
+          - '1080p (Full HD)'
+          - '720p (HD)'
+          - '480p'
+          - '360p'
+          - 'mp3 (فقط صدا)'
 
 jobs:
   download:
@@ -14,24 +26,39 @@ jobs:
     steps:
       - name: نصب yt-dlp
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          sudo apt-get update && sudo apt-get install -y ffmpeg
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
 
-      - name: دانلود ویدیو
+      - name: دانلود
         run: |
-          yt-dlp -f "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best" \
-            --merge-output-format mp4 \
-            -o "video.mp4" \
-            "${{ github.event.inputs.url }}"
+          mkdir -p yt
+          
+          Q="${{ github.event.inputs.quality }}"
+          
+          if [ "$Q" = "mp3 (فقط صدا)" ]; then
+            yt-dlp -f bestaudio --extract-audio --audio-format mp3 \
+              -o "yt/%(title)s.%(ext)s" \
+              "${{ github.event.inputs.url }}"
+          elif [ "$Q" = "2160p (4K)" ]; then
+            yt-dlp -f "bestvideo[height<=2160]+bestaudio/best" \
+              --merge-output-format mp4 \
+              -o "yt/%(title)s.%(ext)s" \
+              "${{ github.event.inputs.url }}"
+          else
+            HEIGHT=$(echo "$Q" | grep -oP '\d+')
+            yt-dlp -f "bestvideo[height<=${HEIGHT}]+bestaudio/best" \
+              --merge-output-format mp4 \
+              -o "yt/%(title)s.%(ext)s" \
+              "${{ github.event.inputs.url }}"
+          fi
+          
+          echo "✅ دانلود تموم شد:"
+          ls -lh yt/
 
-      - name: نمایش حجم فایل
-        run: ls -lh video.mp4
-
-      - name: آپلود به عنوان artifact
+      - name: آپلود artifact
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video
-          path: video.mp4
-          retention-days: 3
+          path: yt/
+          retention-days: 7
