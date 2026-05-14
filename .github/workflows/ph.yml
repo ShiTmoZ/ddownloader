@@ -1,0 +1,64 @@
+name: Download Video
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Video URL'
+        required: true
+        type: string
+      quality:
+        description: 'Quality'
+        required: true
+        type: choice
+        options:
+          - '720p'
+          - '1080p'
+          - 'best'
+        default: '720p'
+
+permissions:
+  contents: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set quality format
+        id: quality
+        run: |
+          if [ "${{ github.event.inputs.quality }}" = "1080p" ]; then
+            echo "format=bestvideo[height<=1080]+bestaudio/best[height<=1080]/best" >> $GITHUB_OUTPUT
+          elif [ "${{ github.event.inputs.quality }}" = "best" ]; then
+            echo "format=bestvideo+bestaudio/best" >> $GITHUB_OUTPUT
+          else
+            echo "format=bestvideo[height<=720]+bestaudio/best[height<=720]/best" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Install yt-dlp
+        run: pip install -U yt-dlp
+
+      - name: Download video
+        run: |
+          mkdir -p downloads
+          
+          yt-dlp \
+            --output "downloads/%(title)s.%(ext)s" \
+            --format "${{ steps.quality.outputs.format }}" \
+            --merge-output-format mp4 \
+            --retries 10 \
+            --fragment-retries 10 \
+            --no-check-certificate \
+            "${{ github.event.inputs.url }}"
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add downloads/
+          git commit -m "Add downloaded video" || echo "No changes to commit"
+          git push
