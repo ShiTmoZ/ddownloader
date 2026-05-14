@@ -16,7 +16,8 @@ async def save_mhtml(url: str, output_file: str):
     browser = await launch(headless=True, args=['--no-sandbox'])
     page = await browser.newPage()
     await page.goto(url, waitUntil='networkidle0')
-    mhtml_data = await page._client.send('Page.captureSnapshot', {})
+    cdp = await page.target.createCDPSession()
+    mhtml_data = await cdp.send('Page.captureSnapshot', {'format': 'mhtml'})
     with open(output_file, 'wb') as f:
         f.write(mhtml_data['data'].encode())
     await browser.close()
@@ -60,10 +61,10 @@ def main():
         zf.write(mhtml_path, arcname=mhtml_filename)
 
     # Cleanup temp
-    import shutil
     shutil.rmtree("temp", ignore_errors=True)
 
     print(f"✅ Created {zip_path} (contains {mhtml_filename})")
 
 if __name__ == "__main__":
+    import shutil
     main()
