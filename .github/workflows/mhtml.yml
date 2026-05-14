@@ -1,6 +1,5 @@
 name: MHTML ذخیره صفحه به 
 
-
 on:
   workflow_dispatch:
     inputs:
@@ -12,11 +11,10 @@ on:
         description: 'Optional title for the output file (no spaces/special chars)'
         required: false
         type: string
+        default: ''
 
-        
 permissions:
   contents: write
-
 
 jobs:
   download:
@@ -31,17 +29,37 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           pip install pyppeteer
+
+      - name: Install Chromium and system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            chromium-browser \
+            libx11-xcb1 \
+            libxcomposite1 \
+            libxcursor1 \
+            libxdamage1 \
+            libxi6 \
+            libxtst6 \
+            libnss3 \
+            libcups2 \
+            libxss1 \
+            libxrandr2 \
+            libasound2 \
+            libatk1.0-0 \
+            libatk-bridge2.0-0 \
+            libpangocairo-1.0-0 \
+            libgtk-3-0 \
+            libgbm1
 
       - name: Run MHTML downloader
         run: |
           python save_as_mhtml.py \
             --url "${{ github.event.inputs.url }}" \
-            ${GITHUB_ACTOR:+--title "${{ github.event.inputs.title }}"}
-
-
+            --title "${{ github.event.inputs.title }}"
 
       - name: Commit and push download folder to repo
         run: |
