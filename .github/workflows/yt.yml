@@ -20,17 +20,25 @@ on:
           - '360p'
           - 'mp3 (فقط صدا)'
 
+permissions:
+  contents: write
+
 jobs:
   download:
     runs-on: ubuntu-latest
     steps:
-      - name: نصب yt-dlp
+      - name: 📦 Checkout مخزن
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🔧 نصب yt-dlp
         run: |
           sudo apt-get update && sudo apt-get install -y ffmpeg
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod a+rx /usr/local/bin/yt-dlp
 
-      - name: دانلود
+      - name: ⬇️ دانلود
         run: |
           mkdir -p yt
           
@@ -56,7 +64,32 @@ jobs:
           echo "✅ دانلود تموم شد:"
           ls -lh yt/
 
-      - name: آپلود artifact
+      - name: 💾 Commit و Push به مخزن
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add yt/
+          
+          if git diff --staged --quiet; then
+            echo "ℹ️ فایل جدیدی وجود نداره"
+          else
+            git commit -m "🎬 دانلود از یوتیوب - $(date +'%Y-%m-%d %H:%M')"
+            
+            # ۵ بار تلاش برای push
+            for i in $(seq 1 5); do
+              git pull --rebase origin main 2>/dev/null || true
+              if git push origin main; then
+                echo "✅ Push موفق!"
+                break
+              else
+                echo "⏳ تلاش $i ناموفق - صبر ۱۰ ثانیه..."
+                sleep 10
+              fi
+            done
+          fi
+
+      - name: 📤 آپلود artifact (پشتیبان)
         uses: actions/upload-artifact@v4
         with:
           name: youtube-video
