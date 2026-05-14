@@ -128,7 +128,7 @@ jobs:
               FILENAME_EXT=""
             fi
 
-            PREFIX="sci-hub.ir"
+            PREFIX=""
 
             if [ "$total" -gt 1 ]; then
               NUM=$(printf '%02d' $counter)
