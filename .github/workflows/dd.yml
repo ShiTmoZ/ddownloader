@@ -1,4 +1,4 @@
-name: انتقال فایل به گیت هاب
+name: Download Files
 
 on:
   workflow_dispatch:
@@ -29,7 +29,7 @@ on:
         type: string
         default: ''
       zip_password:
-        description: '🔒 تعیین رمز برای فایل آرشیو'
+        description: '🔒PASS'
         required: false
         type: string
         default: ''
@@ -271,21 +271,4 @@ jobs:
           echo "========================================="
 
           cat >> $GITHUB_STEP_SUMMARY << EOF
-          <div dir="rtl">
-
-          ## 📊 خلاصه اجرا
-
-          | مورد | مقدار |
-          |------|-------|
-          | دانلود موفق | ${{ steps.download_files.outputs.success_count }} از ${{ steps.parse.outputs.url_count }} |
-          | فایل پردازش شده | ${{ steps.process_files.outputs.processed_count }} عدد |
-          | حداکثر حجم هر تکه | ${{ steps.parse.outputs.split_mb }} مگابایت |
-          | حجم کل | ${TOTAL_SIZE} |
-          | 📂 پوشه دانلود | [ ${FOLDER}](https://github.com/${{ github.repository }}/tree/main/${FOLDER}) |
-          | وضعیت | ✅ موفق |
-
-           ---
-          ## تقدیم به همه آن‌هایی که راهی جز عبور ندارند. - [حسین بلنج](https://balanj.ir)
-                   
-          </div>
           EOF
