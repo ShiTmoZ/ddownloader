@@ -26,7 +26,9 @@ jobs:
     
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
       - name: Set quality format
         id: quality
@@ -44,21 +46,37 @@ jobs:
 
       - name: Download video
         run: |
-          mkdir -p downloads
+          mkdir -p xxx
           
           yt-dlp \
-            --output "downloads/%(title)s.%(ext)s" \
+            --output "xxx/%(title)s.%(ext)s" \
             --format "${{ steps.quality.outputs.format }}" \
             --merge-output-format mp4 \
             --retries 10 \
             --fragment-retries 10 \
             --no-check-certificate \
-            "${{ github.event.inputs.url }}"
+            --force-ipv4 \
+            -v \
+            "${{ github.event.inputs.url }}" || {
+              echo "First attempt failed, trying fallback..."
+              yt-dlp \
+                --output "xxx/%(title)s.%(ext)s" \
+                --format "best" \
+                --merge-output-format mp4 \
+                --retries 10 \
+                --no-check-certificate \
+                --force-ipv4 \
+                "${{ github.event.inputs.url }}"
+            }
+          
+          echo "Files downloaded:"
+          ls -la xxx/
 
       - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add downloads/
-          git commit -m "Add downloaded video" || echo "No changes to commit"
-          git push
+          git pull origin ${{ github.ref_name }} --rebase
+          git add xxx/
+          git commit -m "Add video to xxx" || echo "Nothing to commit"
+          git push origin ${{ github.ref_name }}
